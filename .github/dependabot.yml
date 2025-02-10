@@ -1,0 +1,24 @@
+"updates":
+- "directories":
+  - "/"
+  "groups":
+    "github-actions":
+      "patterns":
+      - "*"
+  "open-pull-requests-limit": 10
+  "package-ecosystem": "github-actions"
+  "schedule":
+    "interval": "daily"
+    "time": "04:00"
+- "directories":
+  - "/"
+  "groups":
+    "gomod":
+      "patterns":
+      - "*"
+  "open-pull-requests-limit": 10
+  "package-ecosystem": "gomod"
+  "schedule":
+    "interval": "daily"
+    "time": "04:00"
+"version": 2
