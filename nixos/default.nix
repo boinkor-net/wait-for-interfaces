@@ -16,6 +16,11 @@
         type = types.listOf types.str;
         default = [];
       };
+      requireIPs = mkOption {
+        description = "IP addresses that must be set on the interface before services can start. If not set, any address will be accepted.";
+        type = types.listOf types.str;
+        default = [];
+      };
     };
   in {
     networking.wait-for-interfaces = mkOption {
@@ -31,27 +36,28 @@
   };
 
   config = let
-    addServiceDependencies = interface: {services, ...}:
+    cmdline = interface: {requireIPs, ...}: (map (ip: "-ip=${ip}") requireIPs) ++ [interface];
+    addServiceDependencies = interface: args @ {services, ...}:
       lib.listToAttrs (map
         (service: {
           name = service;
           value = {
             serviceConfig = {
               ExecStartPre = [
-                "+${lib.getExe pkgs.wait-for-interfaces} ${lib.escapeShellArg interface}"
+                "+${lib.getExe pkgs.wait-for-interfaces} ${lib.escapeShellArgs (cmdline interface args)}"
               ];
             };
           };
         })
         services);
-    addSocketDependencies = interface: {sockets, ...}:
+    addSocketDependencies = interface: args @ {sockets, ...}:
       lib.listToAttrs (map
         (service: {
           name = service;
           value = {
             socketConfig = {
               ExecStartPre = [
-                "+${lib.getExe pkgs.wait-for-interfaces} ${lib.escapeShellArg interface}"
+                "+${lib.getExe pkgs.wait-for-interfaces} ${lib.escapeShellArgs (cmdline interface args)}"
               ];
             };
           };

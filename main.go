@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/netip"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/jpillora/backoff"
@@ -19,10 +21,28 @@ var (
 	jitter   = flag.Bool("jitter", false, "randomize backoff steps")
 )
 
+var (
+	ips map[netip.Addr]bool
+)
+
+func addIP(ipStr string) error {
+	ip, err := netip.ParseAddr(ipStr)
+	if err != nil {
+		return fmt.Errorf("invalid address %v: %w", ipStr, err)
+	}
+	if ips == nil {
+		ips = map[netip.Addr]bool{}
+	}
+	ips[ip] = true
+	return nil
+}
+
 func main() {
 	log.SetOutput(os.Stderr)
 	log.SetPrefix("check-interface-ready: ")
 	log.SetFlags(0)
+
+	flag.Func("ip", "IP addresses required for the interfaces to have.\nCan be passed multiple times.\nIf not passed, any address will be accepted.", addIP)
 	flag.Parse()
 
 	b := backoff.Backoff{
@@ -55,7 +75,7 @@ outer:
 
 var (
 	errNotUp  = errors.New("interface is not yet in states UP & RUNNING")
-	errNoAddr = errors.New("interface has no address yet")
+	errNoAddr = errors.New("interface has no wanted address yet")
 	errNoIf   = errors.New("Interface doesn't exist (yet)")
 )
 
@@ -73,7 +93,14 @@ func ensureInterface(name string, interfaces []net.Interface) error {
 		}
 		var hasAddr bool
 		for _, addr := range addrs {
-			log.Printf("Interface %v has address %v/%v", name, addr.Network(), addr.String())
+			if ips != nil {
+				ip := netip.MustParseAddr(strings.Split(addr.String(), "/")[0])
+				if !ips[ip] {
+					log.Printf("Interface %v has address %v but that's unwanted", name, addr.String())
+					continue
+				}
+			}
+			log.Printf("Interface %v has address %v", name, addr.String())
 			hasAddr = true
 		}
 		if !hasAddr {
