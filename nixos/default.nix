@@ -2,17 +2,18 @@
   pkgs,
   lib,
   config,
+  ...
 }: {
   options = with lib; let
     wfiSubmodule.options = {
       services = mkOption {
         description = "Services that depend on the listed interfaces";
-        type = types.listOf (types.oneOf (builtins.attrNames config.systemd.services));
+        type = types.listOf types.str;
         default = [];
       };
       sockets = mkOption {
         description = "Sockets that depend on the listed interfaces";
-        type = types.listOf (types.oneOf (builtins.attrNames config.systemd.sockets));
+        type = types.listOf types.str;
         default = [];
       };
     };
@@ -56,7 +57,8 @@
           };
         })
         sockets);
-  in
-    lib.mkMerge ((lib.mapAttrsToList addServiceDependencies config.networking.wait-for-interfaces)
-      ++ (lib.mapAttrsToList addSocketDependencies config.networking.wait-for-interfaces));
+  in {
+    systemd.services = lib.mkMerge (lib.mapAttrsToList addServiceDependencies config.networking.wait-for-interfaces);
+    systemd.sockets = lib.mkMerge (lib.mapAttrsToList addSocketDependencies config.networking.wait-for-interfaces);
+  };
 }

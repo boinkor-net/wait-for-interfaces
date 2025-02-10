@@ -32,10 +32,12 @@
             version = "0.0.0";
             vendorHash = builtins.readFile ./wait-for-interfaces.sri;
             src = lib.sourceFilesBySuffices (lib.sources.cleanSource ./.) [".go" ".mod" ".sum"];
-            ldflags = ["-s" "-w"];
             meta.mainProgram = "wait-for-interfaces";
           };
       in {
+        overlayAttrs = {
+          inherit (config.packages) wait-for-interfaces;
+        };
         packages.default = config.packages.wait-for-interfaces;
         packages.wait-for-interfaces = wfiPkg pkgs;
         formatter = pkgs.alejandra;
@@ -55,10 +57,13 @@
         nixosModules = {
           systemConfiguration = import ./nixos;
           withDefaultOverlay = {
-            nix.overlays = [self.overlays.default];
+            nixpkgs.overlays = [self.overlays.default];
           };
           default = {...}: {
-            imports = [self.nixosModules.withDefaultOverlay self.nixosModules.systemConfiguration];
+            imports = [
+              self.nixosModules.withDefaultOverlay
+              self.nixosModules.systemConfiguration
+            ];
           };
         };
       };
