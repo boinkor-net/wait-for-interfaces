@@ -24,7 +24,7 @@
           name = "regenSRI";
           category = "dev";
           help = "Regenerate wait-for-interfaces.sri in case the module SRI hash should change";
-          command = "${config.apps.generate-sri-tsnsrv.program}";
+          command = "${config.apps.generate-sri-wait-for-interfaces.program}";
         }
       ];
       packages = [
