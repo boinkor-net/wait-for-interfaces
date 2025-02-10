@@ -1,0 +1,41 @@
+name: "CI/Nix"
+on:
+  workflow_call:
+
+jobs:
+  nix_fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: boinkor-net/ci-baseline-nix/actions/fmt@main
+        with:
+          root: "."
+
+  nix_flake_safety:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: boinkor-net/ci-baseline-nix/actions/flake_safety@main
+        with:
+          root: "."
+
+  nix_test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: boinkor-net/ci-baseline-nix/actions/test@main
+        with:
+          root: "."
+
+  build:
+    strategy:
+      matrix:
+        derivation: [""]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: boinkor-net/ci-baseline-nix/actions/build@main
+        with:
+          root: "."
+          installable: ${{matrix.derivation}}
+
