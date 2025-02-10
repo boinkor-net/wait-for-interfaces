@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -12,11 +13,10 @@ import (
 )
 
 var (
-	debug  = flag.Bool("debug", false, "print debug messages")
-	min    = flag.Duration("min", 100*time.Millisecond, "minimum backoff duration")
-	max    = flag.Duration("max", 30*time.Second, "maximum backoff duration")
-	factor = flag.Float64("factor", 1.5, "multiplication factor for each attempt")
-	jitter = flag.Bool("jitter", false, "randomize backoff steps")
+	minDelay = flag.Duration("min", 100*time.Millisecond, "minimum backoff duration")
+	maxDelay = flag.Duration("max", 30*time.Second, "maximum backoff duration")
+	factor   = flag.Float64("factor", 1.5, "multiplication factor for each attempt")
+	jitter   = flag.Bool("jitter", false, "randomize backoff steps")
 )
 
 func main() {
@@ -28,8 +28,8 @@ func main() {
 	b := backoff.Backoff{
 		Factor: *factor,
 		Jitter: *jitter,
-		Min:    *min,
-		Max:    *max,
+		Min:    *minDelay,
+		Max:    *maxDelay,
 	}
 
 	namesToCheck := flag.Args()
@@ -53,13 +53,19 @@ outer:
 	}
 }
 
+var (
+	errNotUp  = errors.New("interface is not yet in states UP & RUNNING")
+	errNoAddr = errors.New("interface has no address yet")
+	errNoIf   = errors.New("Interface doesn't exist (yet)")
+)
+
 func ensureInterface(name string, interfaces []net.Interface) error {
 	for _, iface := range interfaces {
 		if iface.Name != name {
 			continue
 		}
 		if iface.Flags&(net.FlagUp|net.FlagRunning) == 0 {
-			return fmt.Errorf("interface %v is not yet up & running - flags %x", name, iface.Flags)
+			return fmt.Errorf("%v with flags %x: %w", name, iface.Flags, errNotUp)
 		}
 		addrs, err := iface.Addrs()
 		if err != nil {
@@ -71,9 +77,9 @@ func ensureInterface(name string, interfaces []net.Interface) error {
 			hasAddr = true
 		}
 		if !hasAddr {
-			return fmt.Errorf("interface %v doesn't have an address yet", name)
+			return fmt.Errorf("%v: %w", name, errNoAddr)
 		}
 		return nil
 	}
-	return fmt.Errorf("no interface named %v found", name)
+	return fmt.Errorf("%v: %w", name, errNoIf)
 }
