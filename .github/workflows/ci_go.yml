@@ -1,0 +1,22 @@
+name: "CI/Go"
+on:
+  workflow_call:
+
+jobs:
+  go_lints:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: boinkor-net/ci-baseline-go/actions/lint@main
+        with:
+          go_version: ""
+
+  go_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: boinkor-net/ci-baseline-go/actions/test@main
+        with:
+          go_version: ""
+
+
