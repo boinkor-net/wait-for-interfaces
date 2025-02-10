@@ -43,3 +43,8 @@ You can use the nixos module defined in this flake like so:
 ```
 
 This will add the above ExecStartPre clause for the `tailscale0` interface to the prometheus-node-exporter service, and to the `nginx` socket units.
+
+
+## Credits
+
+The foundation for this repo was laid by @andrew-d, who made [systemd-backoff](https://github.com/andrew-d/systemd-backoff), on which the golang code in this repo is heavily based. Together with pre-condition checks in `ExecStartPre`, it would work well if nixos's `switch-to-configuration` didn't interpret a failed precondition in ExecStartPre as a unit startup failure (which it kinda is!) and failed the system upgrade!
