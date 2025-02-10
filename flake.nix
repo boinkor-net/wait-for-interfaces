@@ -6,7 +6,11 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
 
-  outputs = inputs @ {flake-parts, ...}:
+  outputs = inputs @ {
+    self,
+    flake-parts,
+    ...
+  }:
     flake-parts.lib.mkFlake {inherit inputs;} {
       imports = [
         inputs.flake-parts.flakeModules.easyOverlay
@@ -48,9 +52,15 @@
       };
 
       flake = {
-        # The usual flake attributes can be defined here, including system-
-        # agnostic ones like nixosModule and system-enumerating ones, although
-        # those are more easily expressed in perSystem.
+        nixosModules = {
+          systemConfiguration = import ./nixos;
+          withDefaultOverlay = {
+            nix.overlays = [self.overlays.default];
+          };
+          default = {...}: {
+            imports = [self.nixosModules.withDefaultOverlay self.nixosModules.systemConfiguration];
+          };
+        };
       };
     };
 }
