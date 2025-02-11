@@ -26,7 +26,7 @@
     networking.wait-for-interfaces = mkOption {
       description = "An attrset mapping an interface name to services and sockets that depend on the interface being online.";
       type = types.attrsOf (types.submodule wfiSubmodule);
-      default = [];
+      default = {};
       example = {
         tailscale0 = {
           services = ["prometheus-node-exporter"];

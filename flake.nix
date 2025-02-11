@@ -15,6 +15,7 @@
       imports = [
         inputs.flake-parts.flakeModules.easyOverlay
         inputs.flake-parts.flakeModules.partitions
+        ./nixos/tests/flake-part.nix
       ];
       systems = ["x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin"];
       perSystem = {
