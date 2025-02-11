@@ -15,14 +15,12 @@ import (
 )
 
 var (
-	minDelay = flag.Duration("min", 100*time.Millisecond, "minimum backoff duration")
-	maxDelay = flag.Duration("max", 30*time.Second, "maximum backoff duration")
-	factor   = flag.Float64("factor", 1.5, "multiplication factor for each attempt")
-	jitter   = flag.Bool("jitter", false, "randomize backoff steps")
-)
-
-var (
-	ips map[netip.Addr]bool
+	minDelay *time.Duration
+	maxDelay *time.Duration
+	factor   *float64
+	jitter   *bool
+	ips      map[netip.Addr]bool
+	ifName   *string
 )
 
 func addIP(ipStr string) error {
@@ -38,12 +36,22 @@ func addIP(ipStr string) error {
 }
 
 func main() {
+	minDelay = flag.Duration("min", 100*time.Millisecond, "minimum backoff duration")
+	maxDelay = flag.Duration("max", 30*time.Second, "maximum backoff duration")
+	factor = flag.Float64("factor", 1.5, "multiplication factor for each attempt")
+	jitter = flag.Bool("jitter", false, "randomize backoff steps")
+	flag.Func("ip", "IP addresses required for the interfaces to have.\nCan be passed multiple times.\nIf not passed, any address will be accepted.", addIP)
+	ifName = flag.String("interface", "", "interface to wait for. Required.")
+	flag.Parse()
+
 	log.SetOutput(os.Stderr)
-	log.SetPrefix("check-interface-ready: ")
+	log.SetPrefix(fmt.Sprintf("wait-for-interfaces: "))
 	log.SetFlags(0)
 
-	flag.Func("ip", "IP addresses required for the interfaces to have.\nCan be passed multiple times.\nIf not passed, any address will be accepted.", addIP)
-	flag.Parse()
+	if ifName == nil || *ifName == "" {
+		log.Fatal("-interface needs to be passed")
+	}
+	log.SetPrefix(fmt.Sprintf("wait-for-interfaces(%v): ", *ifName))
 
 	b := backoff.Backoff{
 		Factor: *factor,
@@ -52,7 +60,6 @@ func main() {
 		Max:    *maxDelay,
 	}
 
-	namesToCheck := flag.Args()
 outer:
 	for {
 		interfaces, err := net.Interfaces()
@@ -61,14 +68,12 @@ outer:
 			time.Sleep(b.Duration())
 			continue outer
 		}
-		for _, ifName := range namesToCheck {
-			if err := ensureInterface(ifName, interfaces); err != nil {
-				log.Printf("Interface %v is not yet up: %v", ifName, err)
-				time.Sleep(b.Duration())
-				continue outer
-			}
+		if err := ensureInterface(*ifName, interfaces); err != nil {
+			log.Printf("Interface %s is not yet up: %v", *ifName, err)
+			time.Sleep(b.Duration())
+			continue outer
 		}
-		log.Printf("All interfaces out of %v are up!", namesToCheck)
+		log.Printf("Interface %s is up.", *ifName)
 		return
 	}
 }
@@ -91,19 +96,20 @@ func ensureInterface(name string, interfaces []net.Interface) error {
 		if err != nil {
 			return fmt.Errorf("could not retrieve addresses for interface %v: %w", name, err)
 		}
-		var hasAddr bool
+		hasAddr := 0
+		needAddr := len(ips)
 		for _, addr := range addrs {
 			if ips != nil {
 				ip := netip.MustParseAddr(strings.Split(addr.String(), "/")[0])
 				if !ips[ip] {
-					log.Printf("Interface %v has address %v but that's unwanted", name, addr.String())
+					log.Printf("Interface %v has address %v but we're not looking for that", name, addr.String())
 					continue
 				}
 			}
 			log.Printf("Interface %v has address %v", name, addr.String())
-			hasAddr = true
+			hasAddr++
 		}
-		if !hasAddr {
+		if hasAddr == 0 || hasAddr < needAddr {
 			return fmt.Errorf("%v: %w", name, errNoAddr)
 		}
 		return nil

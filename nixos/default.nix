@@ -7,12 +7,12 @@
   options = with lib; let
     wfiSubmodule.options = {
       services = mkOption {
-        description = "Services that depend on the listed interfaces";
+        description = "Services that depend on the given interface";
         type = types.listOf types.str;
         default = [];
       };
       sockets = mkOption {
-        description = "Sockets that depend on the listed interfaces";
+        description = "Sockets that depend on the given interface";
         type = types.listOf types.str;
         default = [];
       };
@@ -26,17 +26,18 @@
     networking.wait-for-interfaces = mkOption {
       description = "An attrset mapping an interface name to services and sockets that depend on the interface being online.";
       type = types.attrsOf (types.submodule wfiSubmodule);
-      default = [];
+      default = {};
       example = {
         tailscale0 = {
           services = ["prometheus-node-exporter"];
+          sockets = ["homeauth"];
         };
       };
     };
   };
 
   config = let
-    cmdline = interface: {requireIPs, ...}: (map (ip: "-ip=${ip}") requireIPs) ++ [interface];
+    cmdline = interface: {requireIPs, ...}: (map (ip: "-ip=${ip}") requireIPs) ++ ["-interface=${interface}"];
     addServiceDependencies = interface: args @ {services, ...}:
       lib.listToAttrs (map
         (service: {
