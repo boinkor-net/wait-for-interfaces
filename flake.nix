@@ -6,43 +6,57 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
 
-  outputs = inputs @ {
-    self,
-    flake-parts,
-    ...
-  }:
-    flake-parts.lib.mkFlake {inherit inputs;} {
+  outputs =
+    inputs@{
+      self,
+      flake-parts,
+      ...
+    }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [
         inputs.flake-parts.flakeModules.easyOverlay
         inputs.flake-parts.flakeModules.partitions
         ./nixos/tests/flake-part.nix
       ];
-      systems = ["x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin"];
-      perSystem = {
-        config,
-        self',
-        inputs',
-        pkgs,
-        lib,
-        system,
-        ...
-      }: let
-        wfiPkg = p:
-          p.buildGo123Module {
-            pname = "wait-for-interfaces";
-            version = "0.0.0";
-            vendorHash = builtins.readFile ./wait-for-interfaces.sri;
-            src = lib.sourceFilesBySuffices (lib.sources.cleanSource ./.) [".go" ".mod" ".sum"];
-            meta.mainProgram = "wait-for-interfaces";
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "aarch64-darwin"
+        "x86_64-darwin"
+      ];
+      perSystem =
+        {
+          config,
+          self',
+          inputs',
+          pkgs,
+          lib,
+          system,
+          ...
+        }:
+        let
+          wfiPkg =
+            p:
+            p.buildGoModule {
+              pname = "wait-for-interfaces";
+              version = "0.0.0";
+              vendorHash = builtins.readFile ./wait-for-interfaces.sri;
+              src = lib.sourceFilesBySuffices (lib.sources.cleanSource ./.) [
+                ".go"
+                ".mod"
+                ".sum"
+              ];
+              meta.mainProgram = "wait-for-interfaces";
+            };
+        in
+        {
+          overlayAttrs = {
+            inherit (config.packages) wait-for-interfaces;
           };
-      in {
-        overlayAttrs = {
-          inherit (config.packages) wait-for-interfaces;
+          packages.default = config.packages.wait-for-interfaces;
+          packages.wait-for-interfaces = wfiPkg pkgs;
+          formatter = pkgs.alejandra;
         };
-        packages.default = config.packages.wait-for-interfaces;
-        packages.wait-for-interfaces = wfiPkg pkgs;
-        formatter = pkgs.alejandra;
-      };
 
       partitions.dev = {
         extraInputsFlake = ./dev;
@@ -58,14 +72,16 @@
         nixosModules = {
           systemConfiguration = import ./nixos;
           withDefaultOverlay = {
-            nixpkgs.overlays = [self.overlays.default];
+            nixpkgs.overlays = [ self.overlays.default ];
           };
-          default = {...}: {
-            imports = [
-              self.nixosModules.withDefaultOverlay
-              self.nixosModules.systemConfiguration
-            ];
-          };
+          default =
+            { ... }:
+            {
+              imports = [
+                self.nixosModules.withDefaultOverlay
+                self.nixosModules.systemConfiguration
+              ];
+            };
         };
       };
     };
