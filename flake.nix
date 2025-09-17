@@ -17,7 +17,12 @@
         inputs.flake-parts.flakeModules.partitions
         ./nixos/tests/flake-part.nix
       ];
-      systems = ["x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin"];
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "aarch64-darwin"
+        "x86_64-darwin"
+      ];
       perSystem = {
         config,
         self',
@@ -28,11 +33,15 @@
         ...
       }: let
         wfiPkg = p:
-          p.buildGo123Module {
+          p.buildGoModule {
             pname = "wait-for-interfaces";
             version = "0.0.0";
             vendorHash = builtins.readFile ./wait-for-interfaces.sri;
-            src = lib.sourceFilesBySuffices (lib.sources.cleanSource ./.) [".go" ".mod" ".sum"];
+            src = lib.sourceFilesBySuffices (lib.sources.cleanSource ./.) [
+              ".go"
+              ".mod"
+              ".sum"
+            ];
             meta.mainProgram = "wait-for-interfaces";
           };
       in {

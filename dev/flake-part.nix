@@ -7,7 +7,10 @@
     inputs.devshell.flakeModule
     inputs.generate-go-sri.flakeModules.default
   ];
-  systems = ["x86_64-linux" "aarch64-darwin"];
+  systems = [
+    "x86_64-linux"
+    "aarch64-darwin"
+  ];
 
   perSystem = {
     config,
@@ -28,7 +31,7 @@
         }
       ];
       packages = [
-        pkgs.go_1_23
+        pkgs.go
         pkgs.gopls
         pkgs.golangci-lint
       ];
