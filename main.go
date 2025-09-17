@@ -45,7 +45,7 @@ func main() {
 	flag.Parse()
 
 	log.SetOutput(os.Stderr)
-	log.SetPrefix(fmt.Sprintf("wait-for-interfaces: "))
+	log.SetPrefix("wait-for-interfaces: ")
 	log.SetFlags(0)
 
 	if ifName == nil || *ifName == "" {
@@ -81,7 +81,7 @@ outer:
 var (
 	errNotUp  = errors.New("interface is not yet in states UP & RUNNING")
 	errNoAddr = errors.New("interface has no wanted address yet")
-	errNoIf   = errors.New("Interface doesn't exist (yet)")
+	errNoIf   = errors.New("interface doesn't exist (yet)")
 )
 
 func ensureInterface(name string, interfaces []net.Interface) error {
